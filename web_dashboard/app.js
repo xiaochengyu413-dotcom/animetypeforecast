@@ -83,6 +83,28 @@
     `;
   }
 
+  function trendVariant(value) {
+    if (typeof value !== "string") {
+      return "neutral";
+    }
+    if (value.includes("上升")) {
+      return "positive";
+    }
+    if (value.includes("下降")) {
+      return "negative";
+    }
+    return "neutral";
+  }
+
+  function createTrendPill(label, value) {
+    return `
+      <span class="trend-pill ${trendVariant(value)}">
+        <span class="trend-pill-label">${label}</span>
+        <span class="trend-pill-value">${value}</span>
+      </span>
+    `;
+  }
+
   function setImage(id, relativePath, alt) {
     const image = document.getElementById(id);
     image.alt = alt;
@@ -473,6 +495,9 @@
       analysis.headline || `${theme.theme} 分析`;
     document.getElementById("analysis-confidence").textContent =
       analysis.confidenceLabel || "谨慎参考";
+    document.getElementById("analysis-trend-row").innerHTML = (analysis.trendDirections || [])
+      .map((item) => createTrendPill(item.label, item.value))
+      .join("");
     document.getElementById("analysis-list").innerHTML = (analysis.bullets || [])
       .map((item) => createAnalysisCard(item.title, item.body))
       .join("");

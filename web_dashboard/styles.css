@@ -625,6 +625,45 @@ select {
   white-space: nowrap;
 }
 
+.analysis-trend-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0 0 14px;
+}
+
+.trend-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 42px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(45, 43, 51, 0.1);
+  background: rgba(255, 255, 255, 0.76);
+}
+
+.trend-pill-label {
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.trend-pill-value {
+  font-weight: 700;
+}
+
+.trend-pill.positive .trend-pill-value {
+  color: var(--teal);
+}
+
+.trend-pill.negative .trend-pill-value {
+  color: var(--danger);
+}
+
+.trend-pill.neutral .trend-pill-value {
+  color: var(--ink);
+}
+
 .analysis-list {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

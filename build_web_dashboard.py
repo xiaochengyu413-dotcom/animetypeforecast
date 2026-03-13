@@ -124,17 +124,37 @@ def rank_position_map(
     return {str(row["theme"]): index for index, row in enumerate(ordered, start=1)}
 
 
+def classify_trend_direction(delta: float | None, metric: str) -> str:
+    if delta is None:
+        return "趋势暂缺"
+
+    threshold = {
+        "popularity": 1.0,
+        "rating": 0.05,
+    }.get(metric, 0.0)
+
+    if delta >= threshold * 2:
+        return "明显上升"
+    if delta >= threshold:
+        return "上升"
+    if delta <= -threshold * 2:
+        return "明显下降"
+    if delta <= -threshold:
+        return "下降"
+    return "基本持平"
+
+
 def describe_delta(delta: float | None, rank_position: int, total: int, metric: str) -> str:
     if delta is None:
         return "趋势暂缺"
 
     positive_labels = {
-        "popularity": ("小幅升温", "温和上行", "强势上行"),
-        "rating": ("口碑略有改善", "口碑温和改善", "口碑明显改善"),
+        "popularity": ("小幅上升", "温和上升", "明显上升"),
+        "rating": ("评分小幅上升", "评分温和上升", "评分明显上升"),
     }
     negative_labels = {
-        "popularity": ("轻微回落", "温和降温", "明显降温"),
-        "rating": ("口碑轻微回落", "口碑温和回落", "口碑明显回落"),
+        "popularity": ("小幅下降", "温和下降", "明显下降"),
+        "rating": ("评分小幅下降", "评分温和下降", "评分明显下降"),
     }
     stable_labels = {
         "popularity": "热度基本持平",
@@ -298,6 +318,8 @@ def build_theme_analysis(
 ) -> dict[str, object]:
     popularity_delta = float(popularity["forecastDeltaFromLastActual"])
     rating_delta = float(rating["forecastDeltaFromLastActual"])
+    popularity_direction = classify_trend_direction(popularity_delta, "popularity")
+    rating_direction = classify_trend_direction(rating_delta, "rating")
 
     popularity_trend = describe_delta(
         popularity_delta, popularity_delta_rank, theme_count, "popularity"
@@ -346,7 +368,8 @@ def build_theme_analysis(
         {
             "title": "趋势判断",
             "body": (
-                f"{theme} 的未来热度判断为“{popularity_trend}”，到 "
+                f"{theme} 的未来热度趋势明确为“{popularity_direction}”，评分趋势为“{rating_direction}”。"
+                f" 进一步看强弱，热度属于“{popularity_trend}”，到 "
                 f"{popularity['forecastEndQuarter']} 预计达到 {float(popularity['forecastFinalValue']):.2f}，"
                 f"较最近实测季度变动 {popularity_delta:+.2f}；评分端则是“{rating_trend}”，"
                 f"末期预测值为 {float(rating['forecastFinalValue']):.2f}，变动 {rating_delta:+.2f}。"
@@ -370,12 +393,25 @@ def build_theme_analysis(
         "headline": headline,
         "confidenceLabel": confidence_label,
         "summary": (
-            f"{theme} 当前呈现“{popularity_trend} + {rating_trend}”的组合，"
+            f"{theme} 的未来热度趋势是“{popularity_direction}”，评分趋势是“{rating_direction}”。"
+            f" 当前呈现“{popularity_trend} + {rating_trend}”的组合，"
             f"整体更接近“{alignment_label}”的题材结构。"
         ),
         "conclusion": conclusion,
         "supplyLabel": supply_label,
         "stabilityLabel": stability_label,
+        "trendDirections": [
+            {
+                "label": "热度趋势",
+                "value": popularity_direction,
+                "delta": popularity_delta,
+            },
+            {
+                "label": "评分趋势",
+                "value": rating_direction,
+                "delta": rating_delta,
+            },
+        ],
         "bullets": bullets,
     }
 
