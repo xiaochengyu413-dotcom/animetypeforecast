@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bangumi 动漫主题趋势预测</title>
+  <meta
+    name="description"
+    content="基于 Bangumi 档案数据的动漫主题季度趋势预测网页，集中展示热度、评分、验证结果与敏感性分析。"
+  >
+  <link rel="stylesheet" href="./styles.css">
+  <script defer src="./data.js"></script>
+  <script defer src="./app.js"></script>
+</head>
+<body>
+  <div class="backdrop backdrop-a"></div>
+  <div class="backdrop backdrop-b"></div>
+
+  <header class="site-shell hero reveal">
+    <nav class="topbar">
+      <div class="brand-block">
+        <p class="eyebrow">Anime Theme Forecast</p>
+        <h1>把脚本项目整理成一个可浏览的网页仪表盘</h1>
+      </div>
+      <div class="topbar-links">
+        <a href="#leaderboard">双目标榜单</a>
+        <a href="#comparison">排名分歧</a>
+        <a href="#detail">主题详情</a>
+        <a href="#validation">验证与稳健性</a>
+      </div>
+    </nav>
+
+    <section class="hero-grid">
+      <div class="hero-copy">
+        <p class="lead" id="hero-subtitle">
+          展示的是本地已生成的 Bangumi 主题季度数据、未来 8 个季度预测、回测指标，以及权重敏感性分析。
+        </p>
+        <div class="chip-row" id="hero-chips"></div>
+        <div class="cta-row">
+          <a class="cta primary" href="#detail">直接看主题详情</a>
+          <a class="cta secondary" href="#validation">查看验证与情景分析</a>
+        </div>
+      </div>
+      <div class="hero-metrics" id="hero-metrics"></div>
+    </section>
+  </header>
+
+  <main class="site-shell">
+    <section class="section panel reveal" id="theme-home">
+      <div class="section-head">
+        <div>
+          <p class="section-tag">Theme Entry</p>
+          <h2>首页直接选 15 个主题</h2>
+        </div>
+        <p class="section-note">点击卡片会切换到对应主题，并自动滚动到详情区。</p>
+      </div>
+      <div class="theme-card-grid" id="theme-card-grid"></div>
+    </section>
+
+    <section class="section panel reveal" id="highlights">
+      <div class="section-head">
+        <div>
+          <p class="section-tag">Topline</p>
+          <h2>先看最值得解释的四个结论</h2>
+        </div>
+        <p class="section-note">这些卡片由最终预测榜单、双目标比较和情景结果自动汇总。</p>
+      </div>
+      <div class="insight-grid" id="insight-grid"></div>
+    </section>
+
+    <section class="section two-col reveal" id="leaderboard">
+      <article class="panel table-panel">
+        <div class="section-head compact">
+          <div>
+            <p class="section-tag">Popularity</p>
+            <h2>热度预测榜</h2>
+          </div>
+          <p class="section-note">按未来末期 `popularity_index` 排名。</p>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table" aria-label="热度预测榜">
+            <thead>
+              <tr>
+                <th>排名</th>
+                <th>主题</th>
+                <th>2027Q4 预测</th>
+                <th>相对最后实测</th>
+              </tr>
+            </thead>
+            <tbody id="popularity-table-body"></tbody>
+          </table>
+        </div>
+      </article>
+
+      <article class="panel table-panel">
+        <div class="section-head compact">
+          <div>
+            <p class="section-tag">Rating</p>
+            <h2>评分预测榜</h2>
+          </div>
+          <p class="section-note">按未来末期 `avg_weighted_rating` 排名。</p>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table" aria-label="评分预测榜">
+            <thead>
+              <tr>
+                <th>排名</th>
+                <th>主题</th>
+                <th>2027Q4 预测</th>
+                <th>相对最后实测</th>
+              </tr>
+            </thead>
+            <tbody id="rating-table-body"></tbody>
+          </table>
+        </div>
+      </article>
+    </section>
+
+    <section class="section split-feature reveal" id="comparison">
+      <article class="panel">
+        <div class="section-head compact">
+          <div>
+            <p class="section-tag">Rank Divergence</p>
+            <h2>热度与评分的错位关系</h2>
+          </div>
+          <p class="section-note">对角线附近说明两种目标排序接近；偏离越远，分歧越大。</p>
+        </div>
+        <div class="legend-row" id="comparison-legend"></div>
+        <div class="scatter-shell">
+          <svg id="comparison-scatter" viewBox="0 0 520 420" role="img" aria-label="热度和评分排名散点图"></svg>
+        </div>
+      </article>
+
+      <article class="panel">
+        <div class="section-head compact">
+          <div>
+            <p class="section-tag">Narrative</p>
+            <h2>网页自动提取的分歧摘要</h2>
+          </div>
+          <p class="section-note">点击任意榜单行、散点或下方选择器，会同步定位到同一个主题。</p>
+        </div>
+        <div class="narrative-list" id="comparison-narrative"></div>
+      </article>
+    </section>
+
+    <section class="section panel reveal" id="detail">
+      <div class="section-head">
+        <div>
+          <p class="section-tag">Theme Studio</p>
+          <h2>主题详情</h2>
+        </div>
+        <div class="control-row">
+          <label for="theme-select">选择主题</label>
+          <select id="theme-select" aria-label="选择主题"></select>
+        </div>
+      </div>
+
+      <div class="chip-row theme-chip-row">
+        <span class="chip selected-chip" id="detail-theme-name">主题</span>
+        <span class="chip" id="detail-theme-label">标签</span>
+        <span class="chip" id="detail-theme-window">窗口</span>
+      </div>
+
+      <p class="detail-summary" id="detail-summary"></p>
+
+      <div class="kpi-grid" id="detail-kpis"></div>
+
+      <div class="plot-grid">
+        <figure class="plot-card">
+          <figcaption>未来热度预测</figcaption>
+          <img id="plot-popularity" alt="未来热度预测图">
+        </figure>
+        <figure class="plot-card">
+          <figcaption>未来评分预测</figcaption>
+          <img id="plot-rating" alt="未来评分预测图">
+        </figure>
+        <figure class="plot-card">
+          <figcaption>热度 vs 评分走势对照</figcaption>
+          <img id="plot-comparison" alt="热度与评分走势对照图">
+        </figure>
+        <figure class="plot-card">
+          <figcaption>历史回测验证</figcaption>
+          <img id="plot-evaluation" alt="历史回测验证图">
+        </figure>
+      </div>
+
+      <div class="section two-col nested">
+        <article class="panel inset-panel">
+          <div class="section-head compact">
+            <div>
+              <p class="section-tag">Scenario Ranks</p>
+              <h2>不同权重设定下的最终热度排名</h2>
+            </div>
+            <p class="section-note">这里只展示 `popularity_index` 的情景敏感性结果。</p>
+          </div>
+          <div class="table-wrap compact-table-wrap">
+            <table class="data-table compact" aria-label="不同权重设定下的最终热度排名">
+              <thead>
+                <tr>
+                  <th>场景</th>
+                  <th>排名</th>
+                  <th>最终热度</th>
+                  <th>变化</th>
+                </tr>
+              </thead>
+              <tbody id="scenario-rank-body"></tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="panel inset-panel">
+          <div class="section-head compact">
+            <div>
+              <p class="section-tag">Reading Aid</p>
+              <h2>如何读这一页</h2>
+            </div>
+            <p class="section-note">这里把当前主题最关键的指标放到一句话里。</p>
+          </div>
+          <div class="reading-note" id="detail-reading-note"></div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section split-feature reveal" id="validation">
+      <article class="panel">
+        <div class="section-head compact">
+          <div>
+            <p class="section-tag">Backtest</p>
+            <h2>回测验证</h2>
+          </div>
+          <p class="section-note">当前验证针对 `popularity_index`，对比 Prophet 与 seasonal naive。</p>
+        </div>
+        <div class="mini-card-grid" id="validation-cards"></div>
+        <div class="validation-note" id="validation-note"></div>
+      </article>
+
+      <article class="panel">
+        <div class="section-head compact">
+          <div>
+            <p class="section-tag">Sensitivity</p>
+            <h2>权重敏感性分析</h2>
+          </div>
+          <p class="section-note">考察评分、投票、收藏、供给量不同权重下，未来热度排序是否稳定。</p>
+        </div>
+        <figure class="wide-figure">
+          <img id="sensitivity-summary" alt="敏感性分析总览图">
+        </figure>
+        <div class="table-wrap compact-table-wrap">
+          <table class="data-table compact" aria-label="权重敏感性分析汇总">
+            <thead>
+              <tr>
+                <th>场景</th>
+                <th>未来 Spearman</th>
+                <th>Top5 重合率</th>
+                <th>平均差异</th>
+              </tr>
+            </thead>
+            <tbody id="sensitivity-body"></tbody>
+          </table>
+        </div>
+      </article>
+    </section>
+
+    <section class="section panel reveal" id="roadmap">
+      <div class="section-head">
+        <div>
+          <p class="section-tag">Limitations</p>
+          <h2>当前网页也会把“还不够好”的地方讲清楚</h2>
+        </div>
+        <p class="section-note">这些方向来自项目本身的限制分析，适合作为下一轮迭代待办。</p>
+      </div>
+      <div class="roadmap-grid" id="roadmap-grid"></div>
+    </section>
+  </main>
+
+  <footer class="site-shell footer">
+    <p id="footer-meta">页面基于本地生成结果构建。</p>
+  </footer>
+</body>
+</html>
