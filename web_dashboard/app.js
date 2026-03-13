@@ -74,6 +74,15 @@
     `;
   }
 
+  function createAnalysisCard(title, body) {
+    return `
+      <article class="analysis-card">
+        <strong>${title}</strong>
+        <p>${body}</p>
+      </article>
+    `;
+  }
+
   function setImage(id, relativePath, alt) {
     const image = document.getElementById(id);
     image.alt = alt;
@@ -449,6 +458,7 @@
     const evaluation = theme.evaluation || {};
     const popularity = theme.popularity;
     const rating = theme.rating;
+    const analysis = theme.analysis || {};
 
     document.getElementById("detail-theme-name").textContent = theme.theme;
     document.getElementById("detail-theme-label").textContent = comparison.comparisonLabelZh;
@@ -457,7 +467,17 @@
     document.getElementById("theme-select").value = theme.theme;
 
     document.getElementById("detail-summary").textContent =
-      `${theme.theme} 的最后实测季度是 ${popularity.lastObservedQuarter}。未来末期热度预测为 ${formatNumber(popularity.forecastFinalValue)}，相对最后实测 ${formatSigned(popularity.forecastDeltaFromLastActual)}；评分预测为 ${formatNumber(rating.forecastFinalValue)}，相对最后实测 ${formatSigned(rating.forecastDeltaFromLastActual)}。`;
+      `${theme.theme} 的最后实测季度是 ${popularity.lastObservedQuarter}。未来末期热度预测为 ${formatNumber(popularity.forecastFinalValue)}，相对最后实测 ${formatSigned(popularity.forecastDeltaFromLastActual)}；评分预测为 ${formatNumber(rating.forecastFinalValue)}，相对最后实测 ${formatSigned(rating.forecastDeltaFromLastActual)}。${analysis.summary ? ` ${analysis.summary}` : ""}`;
+
+    document.getElementById("analysis-headline").textContent =
+      analysis.headline || `${theme.theme} 分析`;
+    document.getElementById("analysis-confidence").textContent =
+      analysis.confidenceLabel || "谨慎参考";
+    document.getElementById("analysis-list").innerHTML = (analysis.bullets || [])
+      .map((item) => createAnalysisCard(item.title, item.body))
+      .join("");
+    document.getElementById("analysis-conclusion").textContent =
+      analysis.conclusion || "当前缺少可自动生成的结论。";
 
     document.getElementById("detail-kpis").innerHTML = [
       createKpiCard("热度排名", `#${comparison.popularityRank}`, `相对于评分排名差值 ${comparison.rankGap}`),

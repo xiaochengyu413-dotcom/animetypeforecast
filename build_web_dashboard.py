@@ -117,6 +117,269 @@ def label_count(rows: list[dict[str, object]]) -> dict[str, int]:
     return counts
 
 
+def rank_position_map(
+    rows: list[dict[str, object]], value_key: str, *, reverse: bool = False
+) -> dict[str, int]:
+    ordered = sorted(rows, key=lambda row: float(row[value_key]), reverse=reverse)
+    return {str(row["theme"]): index for index, row in enumerate(ordered, start=1)}
+
+
+def describe_delta(delta: float | None, rank_position: int, total: int, metric: str) -> str:
+    if delta is None:
+        return "趋势暂缺"
+
+    positive_labels = {
+        "popularity": ("小幅升温", "温和上行", "强势上行"),
+        "rating": ("口碑略有改善", "口碑温和改善", "口碑明显改善"),
+    }
+    negative_labels = {
+        "popularity": ("轻微回落", "温和降温", "明显降温"),
+        "rating": ("口碑轻微回落", "口碑温和回落", "口碑明显回落"),
+    }
+    stable_labels = {
+        "popularity": "热度基本持平",
+        "rating": "评分基本持平",
+    }
+
+    percentile = rank_position / max(total, 1)
+    if delta > 0:
+        mild, medium, strong = positive_labels.get(metric, positive_labels["popularity"])
+        if percentile >= 0.8:
+            return strong
+        if percentile >= 0.55:
+            return medium
+        return mild
+    if delta < 0:
+        mild, medium, strong = negative_labels.get(metric, negative_labels["popularity"])
+        if percentile <= 0.2:
+            return strong
+        if percentile <= 0.45:
+            return medium
+        return mild
+    return stable_labels.get(metric, "基本持平")
+
+
+def describe_supply(last_count: float | None, final_count: float | None) -> tuple[str, str]:
+    if last_count is None or final_count is None:
+        return "供给信息暂缺", "缺少季度供给预测，暂不单独判断供给变化。"
+
+    delta = final_count - last_count
+    ratio = delta / max(last_count, 1.0)
+
+    if ratio >= 0.25 or delta >= 6:
+        label = "供给明显扩张"
+    elif ratio >= 0.1 or delta >= 2:
+        label = "供给温和扩张"
+    elif ratio <= -0.25 or delta <= -6:
+        label = "供给明显收缩"
+    elif ratio <= -0.1 or delta <= -2:
+        label = "供给温和收缩"
+    else:
+        label = "供给基本平稳"
+
+    detail = (
+        f"未来末期预测标题数约为 {final_count:.1f}，相对最近实测季度 "
+        f"{last_count:.1f} 变动 {delta:+.1f}。"
+    )
+    return label, detail
+
+
+def describe_alignment(comparison: dict[str, object]) -> tuple[str, str]:
+    rank_gap = int(comparison["rankGap"])
+    gap = abs(rank_gap)
+    theme = str(comparison["theme"])
+    popularity_rank = int(comparison["popularityRank"])
+    rating_rank = int(comparison["ratingRank"])
+
+    if rank_gap <= -6:
+        return (
+            "热度显著强于评分",
+            f"{theme} 的热度排名第 {popularity_rank}，比评分排名第 {rating_rank} 高出 {gap} 位，说明讨论度和受众规模明显走在口碑前面。",
+        )
+    if rank_gap < 0:
+        return (
+            "热度略强于评分",
+            f"{theme} 的热度排名第 {popularity_rank}，评分排名第 {rating_rank}，热度侧领先 {gap} 位，呈现先被看见、再等口碑兑现的结构。",
+        )
+    if rank_gap >= 6:
+        return (
+            "评分显著强于热度",
+            f"{theme} 的评分排名第 {rating_rank}，比热度排名第 {popularity_rank} 高出 {gap} 位，说明更接近口碑驱动而不是流量驱动。",
+        )
+    if rank_gap > 0:
+        return (
+            "评分略强于热度",
+            f"{theme} 的评分排名第 {rating_rank}，热度排名第 {popularity_rank}，评分侧领先 {gap} 位，说明质量感知强于外部热度。",
+        )
+    return (
+        "热度与评分基本一致",
+        f"{theme} 的热度和评分排名都接近前后同一位置，当前没有明显的流量偏差或口碑偏差。",
+    )
+
+
+def describe_scenario_stability(
+    scenario_rows: list[dict[str, object]],
+) -> tuple[str, str, int | None, float | None]:
+    if not scenario_rows:
+        return "情景稳健性暂缺", "缺少不同权重场景下的结果，暂不判断稳健性。", None, None
+
+    ranks = [int(row["forecastRank"]) for row in scenario_rows if row["forecastRank"] is not None]
+    values = [
+        float(row["forecastFinalValue"])
+        for row in scenario_rows
+        if row["forecastFinalValue"] is not None
+    ]
+    if not ranks or not values:
+        return "情景稳健性暂缺", "情景结果不完整，暂不判断稳健性。", None, None
+
+    rank_span = max(ranks) - min(ranks)
+    value_span = max(values) - min(values)
+
+    if rank_span <= 1:
+        label = "结论较稳健"
+    elif rank_span <= 3:
+        label = "结论有一定波动"
+    else:
+        label = "结论对权重较敏感"
+
+    detail = (
+        f"在 {len(ranks)} 个权重场景里，最终热度排名落在 #{min(ranks)} 到 #{max(ranks)} 之间，"
+        f"跨度 {rank_span} 名；末期热度值区间跨度约 {value_span:.2f}。"
+    )
+    return label, detail, rank_span, value_span
+
+
+def describe_validation(
+    evaluation: dict[str, object], mae_rank: int | None, total: int
+) -> tuple[str, str, str]:
+    prophet_mae = evaluation.get("prophetMae")
+    naive_mae = evaluation.get("naiveMae")
+    prophet_beats_naive = evaluation.get("prophetBeatsNaive")
+
+    if prophet_mae is None or naive_mae is None or mae_rank is None:
+        return (
+            "参考度暂缺",
+            "缺少历史回测指标，当前结论主要依赖预测曲线本身。",
+            "谨慎参考",
+        )
+
+    if prophet_beats_naive and mae_rank <= max(1, total // 3):
+        level = "较高置信度"
+    elif prophet_beats_naive or mae_rank <= max(1, (total * 2) // 3):
+        level = "中等置信度"
+    else:
+        level = "谨慎参考"
+
+    baseline_text = (
+        "Prophet 在回测中优于 seasonal naive"
+        if prophet_beats_naive
+        else "seasonal naive 在回测中仍不弱于 Prophet"
+    )
+    detail = (
+        f"{baseline_text}，当前 Prophet MAE 为 {float(prophet_mae):.2f}，"
+        f"在 {total} 个题材里属于第 {mae_rank} 低误差水平。"
+    )
+    return "模型参考度", detail, level
+
+
+def build_theme_analysis(
+    *,
+    theme: str,
+    popularity: dict[str, object],
+    rating: dict[str, object],
+    comparison: dict[str, object],
+    readiness: dict[str, object],
+    evaluation: dict[str, object],
+    scenario_rows: list[dict[str, object]],
+    popularity_delta_rank: int,
+    rating_delta_rank: int,
+    mae_rank: int | None,
+    theme_count: int,
+) -> dict[str, object]:
+    popularity_delta = float(popularity["forecastDeltaFromLastActual"])
+    rating_delta = float(rating["forecastDeltaFromLastActual"])
+
+    popularity_trend = describe_delta(
+        popularity_delta, popularity_delta_rank, theme_count, "popularity"
+    )
+    rating_trend = describe_delta(rating_delta, rating_delta_rank, theme_count, "rating")
+    supply_label, supply_detail = describe_supply(
+        popularity.get("lastActualTitleCount"), popularity.get("forecastFinalTitleCount")
+    )
+    alignment_label, alignment_detail = describe_alignment(comparison)
+    stability_label, stability_detail, rank_span, _ = describe_scenario_stability(scenario_rows)
+    validation_label, validation_detail, confidence_label = describe_validation(
+        evaluation, mae_rank, theme_count
+    )
+
+    if popularity_delta > 0 and rating_delta >= 0:
+        headline = "热度与口碑同步改善"
+        conclusion = (
+            f"到 {popularity['forecastEndQuarter']}，{theme} 更像是景气继续抬升的强势题材，"
+            "适合放在优先关注列表。"
+        )
+    elif popularity_delta > 0 and rating_delta < 0:
+        headline = "热度先行上冲，口碑端仍待兑现"
+        conclusion = (
+            f"到 {popularity['forecastEndQuarter']}，{theme} 更像讨论度驱动的上行题材，"
+            "适合持续跟踪，但解读时要把口碑回落风险一起考虑。"
+        )
+    elif popularity_delta <= 0 and rating_delta >= 0:
+        headline = "市场热度转弱，但口碑韧性仍在"
+        conclusion = (
+            f"到 {popularity['forecastEndQuarter']}，{theme} 更接近口碑型题材，"
+            "适合审慎观察是否会从高评分重新转化为更强热度。"
+        )
+    else:
+        headline = "热度与评分同步承压"
+        conclusion = (
+            f"到 {popularity['forecastEndQuarter']}，{theme} 暂时不属于景气扩张型题材，"
+            "更适合放在观察位而不是高优先级押注。"
+        )
+
+    if rank_span is not None and rank_span <= 1 and confidence_label == "较高置信度":
+        conclusion += " 目前不同权重场景下的排序也比较稳定。"
+    elif rank_span is not None and rank_span >= 4:
+        conclusion += " 不过不同权重设定下名次波动较大，结论应保留弹性。"
+
+    bullets = [
+        {
+            "title": "趋势判断",
+            "body": (
+                f"{theme} 的未来热度判断为“{popularity_trend}”，到 "
+                f"{popularity['forecastEndQuarter']} 预计达到 {float(popularity['forecastFinalValue']):.2f}，"
+                f"较最近实测季度变动 {popularity_delta:+.2f}；评分端则是“{rating_trend}”，"
+                f"末期预测值为 {float(rating['forecastFinalValue']):.2f}，变动 {rating_delta:+.2f}。"
+            ),
+        },
+        {
+            "title": "热度与口碑结构",
+            "body": alignment_detail,
+        },
+        {
+            "title": "供给与稳健性",
+            "body": f"{supply_detail} {stability_detail}",
+        },
+        {
+            "title": validation_label,
+            "body": validation_detail,
+        },
+    ]
+
+    return {
+        "headline": headline,
+        "confidenceLabel": confidence_label,
+        "summary": (
+            f"{theme} 当前呈现“{popularity_trend} + {rating_trend}”的组合，"
+            f"整体更接近“{alignment_label}”的题材结构。"
+        ),
+        "conclusion": conclusion,
+        "supplyLabel": supply_label,
+        "stabilityLabel": stability_label,
+        "bullets": bullets,
+    }
+
+
 def normalize_future_row(row: dict[str, str]) -> dict[str, object]:
     return {
         "theme": row["theme"],
@@ -248,6 +511,11 @@ def build_dashboard_data(site_dir: Path) -> dict[str, object]:
 
     popularity_ranked = rank_rows(raw_popularity, "forecastFinalValue", "rank")
     rating_ranked = rank_rows(raw_rating, "forecastFinalValue", "rank")
+    popularity_delta_positions = rank_position_map(
+        raw_popularity, "forecastDeltaFromLastActual"
+    )
+    rating_delta_positions = rank_position_map(raw_rating, "forecastDeltaFromLastActual")
+    mae_positions = rank_position_map(raw_evaluation, "prophetMae")
     readiness_by_theme = {row["theme"]: row for row in raw_readiness}
     evaluation_by_theme = {row["theme"]: row for row in raw_evaluation}
 
@@ -288,6 +556,7 @@ def build_dashboard_data(site_dir: Path) -> dict[str, object]:
     rating_by_theme = {row["theme"]: row for row in rating_ranked}
 
     theme_order = [str(row["theme"]) for row in popularity_ranked]
+    theme_count = len(theme_order)
     theme_cards: list[dict[str, object]] = []
     for theme in theme_order:
         popularity = popularity_by_theme[theme]
@@ -295,6 +564,7 @@ def build_dashboard_data(site_dir: Path) -> dict[str, object]:
         comparison = comparison_by_theme[theme]
         readiness = readiness_by_theme.get(theme, {})
         evaluation = evaluation_by_theme.get(theme, {})
+        scenario_rows = scenario_by_theme.get(theme, [])
         future_popularity_plot = SCRIPT_DIR / "generated" / "future_forecast" / "plots" / f"{theme}_popularity_index_future.png"
         future_rating_plot = SCRIPT_DIR / "generated" / "future_forecast" / "plots" / f"{theme}_avg_weighted_rating_future.png"
         comparison_plot = SCRIPT_DIR / "generated" / "target_comparison" / "trend_plots" / f"{theme}_rating_vs_popularity_future.png"
@@ -307,7 +577,20 @@ def build_dashboard_data(site_dir: Path) -> dict[str, object]:
                 "comparison": comparison,
                 "readiness": readiness,
                 "evaluation": evaluation,
-                "scenarioRanks": scenario_by_theme.get(theme, []),
+                "scenarioRanks": scenario_rows,
+                "analysis": build_theme_analysis(
+                    theme=theme,
+                    popularity=popularity,
+                    rating=rating,
+                    comparison=comparison,
+                    readiness=readiness,
+                    evaluation=evaluation,
+                    scenario_rows=scenario_rows,
+                    popularity_delta_rank=popularity_delta_positions[theme],
+                    rating_delta_rank=rating_delta_positions[theme],
+                    mae_rank=mae_positions.get(theme),
+                    theme_count=theme_count,
+                ),
                 "assets": {
                     "futurePopularityPlot": stage_asset(site_dir, future_popularity_plot, "future", future_popularity_plot.name),
                     "futureRatingPlot": stage_asset(site_dir, future_rating_plot, "future", future_rating_plot.name),
