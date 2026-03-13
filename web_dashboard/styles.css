@@ -671,7 +671,8 @@ select {
 }
 
 .analysis-card,
-.analysis-conclusion {
+.analysis-conclusion,
+.summary-column {
   padding: 16px;
   border-radius: 16px;
   border: 1px solid rgba(45, 43, 51, 0.08);
@@ -679,16 +680,29 @@ select {
 }
 
 .analysis-card strong,
-.analysis-conclusion strong {
+.analysis-conclusion strong,
+.summary-column strong {
   display: block;
   margin-bottom: 8px;
 }
 
 .analysis-card p,
-.analysis-conclusion p {
+.analysis-conclusion p,
+.summary-column p {
   margin: 0;
   color: var(--muted);
   line-height: 1.7;
+}
+
+.summary-column {
+  margin-bottom: 12px;
+  background:
+    linear-gradient(135deg, rgba(14, 124, 115, 0.08), rgba(255, 255, 255, 0.82));
+}
+
+.summary-column strong {
+  color: var(--ink);
+  font-size: 1.02rem;
 }
 
 .analysis-conclusion {

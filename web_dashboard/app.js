@@ -498,6 +498,8 @@
     document.getElementById("analysis-trend-row").innerHTML = (analysis.trendDirections || [])
       .map((item) => createTrendPill(item.label, item.value))
       .join("");
+    document.getElementById("analysis-plain-summary").textContent =
+      analysis.plainSummary || analysis.summary || "当前缺少可自动生成的摘要。";
     document.getElementById("analysis-list").innerHTML = (analysis.bullets || [])
       .map((item) => createAnalysisCard(item.title, item.body))
       .join("");

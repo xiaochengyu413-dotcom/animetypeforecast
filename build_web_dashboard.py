@@ -302,6 +302,57 @@ def describe_validation(
     return "模型参考度", detail, level
 
 
+def build_plain_language_summary(
+    *,
+    theme: str,
+    forecast_end_quarter: str,
+    popularity_direction: str,
+    rating_direction: str,
+    confidence_label: str,
+    rank_span: int | None,
+) -> str:
+    if "上升" in popularity_direction and "上升" in rating_direction:
+        opening = (
+            f"如果只看一句话，到 {forecast_end_quarter}，{theme} 大概率还是往上走的类型。"
+            " 热度在升，评分也在升，更像会继续变强。"
+        )
+    elif "上升" in popularity_direction and "下降" in rating_direction:
+        opening = (
+            f"如果只看一句话，到 {forecast_end_quarter}，{theme} 看起来会更火，"
+            "但不一定更受好评。它更像靠讨论度和受众扩张往上冲的类型。"
+        )
+    elif "下降" in popularity_direction and "上升" in rating_direction:
+        opening = (
+            f"如果只看一句话，到 {forecast_end_quarter}，{theme} 未必会更火，"
+            "但口碑有机会稳住甚至变好。它更接近口碑撑住热度的小众类型。"
+        )
+    elif "下降" in popularity_direction and "下降" in rating_direction:
+        opening = (
+            f"如果只看一句话，到 {forecast_end_quarter}，{theme} 目前更像在降温。"
+            " 热度和评分都没有给出转强信号，短期不属于最值得押注的方向。"
+        )
+    else:
+        opening = (
+            f"如果只看一句话，到 {forecast_end_quarter}，{theme} 整体变化不算激烈。"
+            " 它更像维持现状、边走边看的类型。"
+        )
+
+    confidence_note = {
+        "较高置信度": "这条判断相对更稳，可以把它当成优先参考。",
+        "中等置信度": "这条判断可以参考，但最好结合后续季度更新继续看。",
+        "谨慎参考": "这条判断要保守看，适合当作趋势提示，不适合当成绝对结论。",
+    }.get(confidence_label, "这条判断更适合做方向参考。")
+
+    stability_note = ""
+    if rank_span is not None:
+        if rank_span <= 1:
+            stability_note = " 不同权重设定下结论变化也不大。"
+        elif rank_span >= 4:
+            stability_note = " 不过不同权重设定下名次波动偏大，说明这类判断还有弹性。"
+
+    return f"{opening} {confidence_note}{stability_note}"
+
+
 def build_theme_analysis(
     *,
     theme: str,
@@ -392,6 +443,14 @@ def build_theme_analysis(
     return {
         "headline": headline,
         "confidenceLabel": confidence_label,
+        "plainSummary": build_plain_language_summary(
+            theme=theme,
+            forecast_end_quarter=str(popularity["forecastEndQuarter"]),
+            popularity_direction=popularity_direction,
+            rating_direction=rating_direction,
+            confidence_label=confidence_label,
+            rank_span=rank_span,
+        ),
         "summary": (
             f"{theme} 的未来热度趋势是“{popularity_direction}”，评分趋势是“{rating_direction}”。"
             f" 当前呈现“{popularity_trend} + {rating_trend}”的组合，"
