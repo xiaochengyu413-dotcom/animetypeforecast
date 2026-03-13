@@ -353,8 +353,8 @@ def build_dashboard_data(site_dir: Path) -> dict[str, object]:
 
     data = {
         "meta": {
-            "projectName": "Bangumi 动漫主题趋势预测网页",
-            "subtitle": "把季度主题数据、双目标预测、验证结果和敏感性分析集中到一个静态仪表盘里。",
+            "projectName": "Anime Type Forecast",
+            "subtitle": "追踪 Bangumi 15 类动画题材的季度表现、未来走势与口碑热度分歧。",
             "generatedAt": datetime.now().strftime("%Y-%m-%d %H:%M"),
             "archiveName": archive_name,
             "archiveCreatedAt": archive_created_at,
