@@ -80,7 +80,6 @@ def main() -> None:
         selected_themes=None,
         forecast_stretch=args.forecast_stretch,
         skip_plots=False,
-        skip_html_plots=not args.include_html_plots,
     )
 
     popularity_forecast = forecast_dataset(
