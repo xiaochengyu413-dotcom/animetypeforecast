@@ -313,27 +313,27 @@ def build_plain_language_summary(
 ) -> str:
     if "上升" in popularity_direction and "上升" in rating_direction:
         opening = (
-            f"如果只看一句话，到 {forecast_end_quarter}，{theme} 大概率还是往上走的类型。"
+            f"一句话总结：到 {forecast_end_quarter}，{theme} 大概率还是往上走的类型。"
             " 热度在升，评分也在升，更像会继续变强。"
         )
     elif "上升" in popularity_direction and "下降" in rating_direction:
         opening = (
-            f"如果只看一句话，到 {forecast_end_quarter}，{theme} 看起来会更火，"
+            f"一句话总结：到 {forecast_end_quarter}，{theme} 看起来会更火，"
             "但不一定更受好评。它更像靠讨论度和受众扩张往上冲的类型。"
         )
     elif "下降" in popularity_direction and "上升" in rating_direction:
         opening = (
-            f"如果只看一句话，到 {forecast_end_quarter}，{theme} 未必会更火，"
+            f"一句话总结：到 {forecast_end_quarter}，{theme} 未必会更火，"
             "但口碑有机会稳住甚至变好。它更接近口碑撑住热度的小众类型。"
         )
     elif "下降" in popularity_direction and "下降" in rating_direction:
         opening = (
-            f"如果只看一句话，到 {forecast_end_quarter}，{theme} 目前更像在降温。"
+            f"一句话总结：到 {forecast_end_quarter}，{theme} 目前更像在降温。"
             " 热度和评分都没有给出转强信号，短期不属于最值得押注的方向。"
         )
     else:
         opening = (
-            f"如果只看一句话，到 {forecast_end_quarter}，{theme} 整体变化不算激烈。"
+            f"一句话总结：到 {forecast_end_quarter}，{theme} 整体变化不算激烈。"
             " 它更像维持现状、边走边看的类型。"
         )
 
