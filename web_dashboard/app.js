@@ -122,7 +122,7 @@
 
     document.getElementById("hero-chips").innerHTML = [
       `<span class="chip">${meta.themeCount} 个高层主题</span>`,
-      `<span class="chip">历史覆盖 ${meta.dataFirstQuarter} - ${meta.dataLastQuarter}</span>`,
+      `<span class="chip">建模覆盖 ${meta.dataFirstQuarter} - ${meta.dataLastQuarter}</span>`,
       `<span class="chip">未来 ${meta.forecastHorizonQuarters} 个季度</span>`,
       `<span class="chip">${meta.scenarioCount} 个权重场景</span>`,
     ].join("");
@@ -512,15 +512,15 @@
       createKpiCard("热度变化", formatSigned(popularity.forecastDeltaFromLastActual), `最终热度 ${formatNumber(popularity.forecastFinalValue)}`),
       createKpiCard("评分变化", formatSigned(rating.forecastDeltaFromLastActual), `最终评分 ${formatNumber(rating.forecastFinalValue)}`),
       createKpiCard("预计供给量", formatNumber(popularity.forecastFinalTitleCount, 1), `未来末期标题数预测`),
-      createKpiCard("可用季度", readiness.usableQuarters ?? "—", `覆盖率 ${formatPercent(readiness.usableCoverageRatio)}`),
+      createKpiCard("可用季度", readiness.usableQuarters ?? "—", `建模覆盖率 ${formatPercent(readiness.usableCoverageRatio)}`),
       createKpiCard("Prophet MAE", formatNumber(evaluation.prophetMae), `naive MAE ${formatNumber(evaluation.naiveMae)}`),
-      createKpiCard("历史跨度", readiness.firstQuarter ? `${readiness.firstQuarter} - ${readiness.lastQuarter}` : "—", `总作品数 ${readiness.totalTitles ?? "—"}`),
+      createKpiCard("建模跨度", readiness.firstQuarter ? `${readiness.firstQuarter} - ${readiness.lastQuarter}` : "—", `总作品数 ${readiness.totalTitles ?? "—"}`),
     ].join("");
 
     setImage("plot-popularity", theme.assets.futurePopularityPlot, `${theme.theme} 未来热度预测`);
     setImage("plot-rating", theme.assets.futureRatingPlot, `${theme.theme} 未来评分预测`);
     setImage("plot-comparison", theme.assets.comparisonTrendPlot, `${theme.theme} 热度与评分走势对照`);
-    setImage("plot-evaluation", theme.assets.evaluationPlot, `${theme.theme} 历史回测验证`);
+    setImage("plot-evaluation", theme.assets.evaluationPlot, `${theme.theme} 历史回溯验证`);
 
     document.getElementById("scenario-rank-body").innerHTML = theme.scenarioRanks
       .map(
@@ -543,7 +543,7 @@
     document.getElementById("detail-reading-note").innerHTML = `
       <p>如果你想判断“这个主题究竟是更热，还是只是评分更高”，先看热度排名与评分排名的差值，再看第三张对照图。</p>
       <p>${prophetVsNaive}</p>
-      <p>在当前数据里，${theme.theme} 的季度供给覆盖率为 ${formatPercent(readiness.usableCoverageRatio)}，可用季度数为 ${readiness.usableQuarters ?? "—"}。</p>
+      <p>在当前数据里，${theme.theme} 的建模覆盖率为 ${formatPercent(readiness.usableCoverageRatio)}，可用季度数为 ${readiness.usableQuarters ?? "—"}。</p>
     `;
   }
 

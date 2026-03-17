@@ -501,19 +501,33 @@ def normalize_future_row(row: dict[str, str]) -> dict[str, object]:
 
 
 def normalize_readiness_row(row: dict[str, str]) -> dict[str, object]:
+    observed_first = row.get("observed_first_quarter") or row.get("first_quarter")
+    observed_last = row.get("observed_last_quarter") or row.get("last_quarter")
+    model_first = row.get("model_first_quarter") or row.get("first_quarter")
+    model_last = row.get("model_last_quarter") or row.get("last_quarter")
+
     return {
         "theme": row["theme"],
-        "firstQuarter": quarter_from_date(row["first_quarter"]),
-        "lastQuarter": quarter_from_date(row["last_quarter"]),
+        "observedFirstQuarter": quarter_from_date(observed_first) if observed_first else None,
+        "observedLastQuarter": quarter_from_date(observed_last) if observed_last else None,
+        "modelFirstQuarter": quarter_from_date(model_first) if model_first else None,
+        "modelLastQuarter": quarter_from_date(model_last) if model_last else None,
+        "firstQuarter": quarter_from_date(model_first) if model_first else None,
+        "lastQuarter": quarter_from_date(model_last) if model_last else None,
         "observedQuarters": to_int(row["observed_quarters"]),
         "usableQuarters": to_int(row["usable_quarters"]),
         "totalTitles": to_int(row["total_titles"]),
         "totalVotes": to_int(row["total_votes"]),
         "meanTitlesPerQuarter": to_float(row["mean_titles_per_quarter"]),
         "medianTitlesPerQuarter": to_float(row["median_titles_per_quarter"]),
-        "spanQuarters": to_int(row["span_quarters"]),
-        "coverageRatio": to_float(row["coverage_ratio"]),
-        "usableCoverageRatio": to_float(row["usable_coverage_ratio"]),
+        "observedSpanQuarters": to_int(row.get("observed_span_quarters")) or to_int(row["span_quarters"]),
+        "modelSpanQuarters": to_int(row.get("model_span_quarters")) or to_int(row["span_quarters"]),
+        "spanQuarters": to_int(row.get("model_span_quarters")) or to_int(row["span_quarters"]),
+        "observedCoverageRatio": to_float(row.get("observed_coverage_ratio")) or to_float(row["coverage_ratio"]),
+        "modelCoverageRatio": to_float(row.get("model_coverage_ratio")) or to_float(row["coverage_ratio"]),
+        "coverageRatio": to_float(row.get("model_coverage_ratio")) or to_float(row["coverage_ratio"]),
+        "observedUsableCoverageRatio": to_float(row.get("observed_usable_coverage_ratio")) or to_float(row["usable_coverage_ratio"]),
+        "usableCoverageRatio": to_float(row.get("model_coverage_ratio")) or to_float(row["usable_coverage_ratio"]),
         "readyForForecast": str(row["ready_for_forecast"]).lower() == "true",
     }
 
@@ -720,8 +734,8 @@ def build_dashboard_data(site_dir: Path) -> dict[str, object]:
     strongest_rating_bias = max(comparison_rows, key=lambda row: int(row["rankGap"]))
 
     all_ready = [row for row in raw_readiness if bool(row["readyForForecast"])]
-    first_quarter = min(str(row["firstQuarter"]) for row in all_ready)
-    last_quarter = max(str(row["lastQuarter"]) for row in all_ready)
+    first_quarter = min(str(row["modelFirstQuarter"] or row["firstQuarter"]) for row in all_ready)
+    last_quarter = max(str(row["modelLastQuarter"] or row["lastQuarter"]) for row in all_ready)
     forecast_end_quarter = max(str(row["forecastEndQuarter"]) for row in popularity_ranked)
     forecast_horizon = max(int(row["forecastPeriods"]) for row in popularity_ranked)
     archive_meta = read_json(ARCHIVE_METADATA) if ARCHIVE_METADATA.exists() else {}

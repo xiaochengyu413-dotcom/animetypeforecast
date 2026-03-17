@@ -262,8 +262,8 @@ def build_dataset(
     readiness = (
         quarterly.groupby("theme", as_index=False)
         .agg(
-            first_quarter=("ds", "min"),
-            last_quarter=("ds", "max"),
+            observed_first_quarter=("ds", "min"),
+            observed_last_quarter=("ds", "max"),
             observed_quarters=("ds", "size"),
             usable_quarters=("eligible_for_modeling", "sum"),
             total_titles=("title_count", "sum"),
@@ -276,21 +276,66 @@ def build_dataset(
         .reset_index(drop=True)
     )
 
-    readiness["span_quarters"] = readiness.apply(
-        lambda row: quarter_span(row["first_quarter"], row["last_quarter"]),
+    readiness["observed_span_quarters"] = readiness.apply(
+        lambda row: quarter_span(row["observed_first_quarter"], row["observed_last_quarter"]),
         axis=1,
     )
-    readiness["coverage_ratio"] = readiness["observed_quarters"] / readiness["span_quarters"].replace(0, np.nan)
-    readiness["usable_coverage_ratio"] = readiness["usable_quarters"] / readiness["span_quarters"].replace(0, np.nan)
+    readiness["observed_coverage_ratio"] = (
+        readiness["observed_quarters"] / readiness["observed_span_quarters"].replace(0, np.nan)
+    )
+    readiness["observed_usable_coverage_ratio"] = (
+        readiness["usable_quarters"] / readiness["observed_span_quarters"].replace(0, np.nan)
+    )
     readiness["ready_for_forecast"] = (
         (readiness["usable_quarters"] >= min_quarters)
-        & (readiness["coverage_ratio"] >= min_coverage)
+        & (readiness["observed_coverage_ratio"] >= min_coverage)
     )
 
     ready_themes = set(readiness.loc[readiness["ready_for_forecast"], "theme"])
     model_ready = quarterly[
         quarterly["theme"].isin(ready_themes) & quarterly["eligible_for_modeling"]
     ].copy()
+
+    model_windows = (
+        model_ready.groupby("theme", as_index=False)
+        .agg(
+            model_first_quarter=("ds", "min"),
+            model_last_quarter=("ds", "max"),
+        )
+        .sort_values("theme")
+        .reset_index(drop=True)
+    )
+
+    readiness = readiness.merge(model_windows, on="theme", how="left")
+    readiness["model_span_quarters"] = readiness.apply(
+        lambda row: (
+            quarter_span(row["model_first_quarter"], row["model_last_quarter"])
+            if pd.notna(row["model_first_quarter"]) and pd.notna(row["model_last_quarter"])
+            else np.nan
+        ),
+        axis=1,
+    )
+    readiness["model_coverage_ratio"] = (
+        readiness["usable_quarters"] / readiness["model_span_quarters"].replace(0, np.nan)
+    )
+
+    # Default span fields now reflect the actual model-training window. The
+    # observed_* columns preserve the broader raw coverage window for reference.
+    readiness["first_quarter"] = readiness["model_first_quarter"].combine_first(
+        readiness["observed_first_quarter"]
+    )
+    readiness["last_quarter"] = readiness["model_last_quarter"].combine_first(
+        readiness["observed_last_quarter"]
+    )
+    readiness["span_quarters"] = readiness["model_span_quarters"].combine_first(
+        readiness["observed_span_quarters"]
+    )
+    readiness["coverage_ratio"] = readiness["model_coverage_ratio"].combine_first(
+        readiness["observed_coverage_ratio"]
+    )
+    readiness["usable_coverage_ratio"] = readiness["model_coverage_ratio"].combine_first(
+        readiness["observed_usable_coverage_ratio"]
+    )
 
     taxonomy_path = output_dir / "theme_taxonomy.csv"
     all_path = output_dir / "theme_quarterly_all.csv"
