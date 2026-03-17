@@ -30,6 +30,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--top-n", type=int, default=0)
     parser.add_argument("--theme", action="append", dest="themes")
     parser.add_argument("--forecast-stretch", type=float, default=3.0)
+    parser.add_argument("--test-start-quarter", type=str, default=None)
+    parser.add_argument("--test-end-quarter", type=str, default=None)
     parser.add_argument("--skip-plots", action="store_true")
     return parser.parse_args()
 
@@ -41,6 +43,18 @@ def mape(y_true: pd.Series, y_pred: pd.Series) -> float:
 
 def rmse(y_true: pd.Series, y_pred: pd.Series) -> float:
     return float(np.sqrt(np.mean(np.square(y_true - y_pred))))
+
+
+def quarter_start_from_label(value: str | None) -> pd.Timestamp | None:
+    if value in (None, ""):
+        return None
+    match = re.fullmatch(r"(\d{4})Q([1-4])", str(value).strip())
+    if not match:
+        raise ValueError(f"Invalid quarter label: {value}")
+    year = int(match.group(1))
+    quarter = int(match.group(2))
+    month = (quarter - 1) * 3 + 1
+    return pd.Timestamp(year=year, month=month, day=1)
 
 
 def build_prophet_model() -> Prophet:
@@ -171,13 +185,30 @@ def evaluate_theme(
     target: str,
     test_periods: int,
     min_train_points: int,
+    test_start_quarter: str | None,
+    test_end_quarter: str | None,
 ) -> tuple[dict[str, float | str], pd.DataFrame] | None:
     ordered = theme_frame.sort_values("ds").reset_index(drop=True).copy()
-    if len(ordered) < min_train_points + test_periods:
-        return None
+    start_timestamp = quarter_start_from_label(test_start_quarter)
+    end_timestamp = quarter_start_from_label(test_end_quarter)
 
-    train = ordered.iloc[:-test_periods].copy()
-    test = ordered.iloc[-test_periods:].copy()
+    if start_timestamp is not None or end_timestamp is not None:
+        if start_timestamp is None:
+            start_timestamp = pd.Timestamp(ordered["ds"].min())
+        if end_timestamp is None:
+            end_timestamp = pd.Timestamp(ordered["ds"].max())
+        test = ordered.loc[
+            (ordered["ds"] >= start_timestamp) & (ordered["ds"] <= end_timestamp)
+        ].copy()
+        if test.empty:
+            return None
+        train = ordered.loc[ordered["ds"] < pd.Timestamp(test["ds"].min())].copy()
+    else:
+        if len(ordered) < min_train_points + test_periods:
+            return None
+        train = ordered.iloc[:-test_periods].copy()
+        test = ordered.iloc[-test_periods:].copy()
+
     if len(train) < min_train_points:
         return None
 
@@ -214,6 +245,70 @@ def evaluate_theme(
     prophet_test["theme"] = metrics["theme"]
     prophet_test["split"] = "test"
     return metrics, prophet_test
+
+
+def plot_test_window_comparison(
+    result_frame: pd.DataFrame,
+    target: str,
+    output_path: Path,
+    font: font_manager.FontProperties | None,
+) -> None:
+    window = result_frame.sort_values("ds").copy()
+    if window.empty:
+        return
+
+    window["quarter_label"] = window["ds"].dt.to_period("Q").astype(str)
+    x_positions = np.arange(len(window), dtype=float)
+
+    fig, ax = plt.subplots(figsize=(10, 4.8))
+    ax.plot(
+        x_positions,
+        window[target],
+        color="#1f77b4",
+        marker="o",
+        linewidth=2.2,
+        label="Actual",
+    )
+    ax.plot(
+        x_positions,
+        window["yhat"],
+        color="#ff7f0e",
+        marker="o",
+        linestyle="--",
+        linewidth=2.0,
+        label="Prophet backtest",
+    )
+    ax.plot(
+        x_positions,
+        window["seasonal_naive"],
+        color="#7f7f7f",
+        marker="o",
+        linestyle=":",
+        linewidth=1.8,
+        label="Seasonal naive",
+    )
+    ax.fill_between(
+        x_positions,
+        window["yhat_lower"],
+        window["yhat_upper"],
+        color="#ff7f0e",
+        alpha=0.14,
+        label="Prophet interval",
+    )
+    ax.set_xticks(x_positions)
+    ax.set_xticklabels(window["quarter_label"], rotation=30, ha="right", fontproperties=font)
+    ax.set_ylabel(target)
+    ax.set_xlabel("Quarter")
+    ax.grid(alpha=0.25)
+    ax.legend(prop=font)
+    title = (
+        f"{window['theme'].iloc[0]}: "
+        f"{window['quarter_label'].iloc[0]}-{window['quarter_label'].iloc[-1]} backtest"
+    )
+    ax.set_title(title, fontproperties=font)
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=150)
+    plt.close(fig)
 
 
 def plot_theme_result(
@@ -302,11 +397,16 @@ def evaluate_dataset(
     top_n: int,
     selected_themes: list[str] | None,
     forecast_stretch: float,
+    test_start_quarter: str | None,
+    test_end_quarter: str | None,
     skip_plots: bool,
 ) -> dict[str, Path]:
     output_dir.mkdir(parents=True, exist_ok=True)
     plots_dir = output_dir / "plots"
     plots_dir.mkdir(parents=True, exist_ok=True)
+    window_plots_dir = output_dir / "window_plots"
+    if test_start_quarter or test_end_quarter:
+        window_plots_dir.mkdir(parents=True, exist_ok=True)
 
     dataset = pd.read_csv(input_path, encoding="utf-8-sig", parse_dates=["ds"])
     required_columns = {"theme", "ds", target, "title_count"}
@@ -342,6 +442,8 @@ def evaluate_dataset(
             target=target,
             test_periods=test_periods,
             min_train_points=min_train_points,
+            test_start_quarter=test_start_quarter,
+            test_end_quarter=test_end_quarter,
         )
         if result is None:
             continue
@@ -359,6 +461,13 @@ def evaluate_dataset(
                 font=font,
                 forecast_stretch=forecast_stretch,
             )
+            if test_start_quarter or test_end_quarter:
+                plot_test_window_comparison(
+                    result_frame=forecast_frame,
+                    target=target,
+                    output_path=window_plots_dir / f"{safe_name(theme)}_{target}_window.png",
+                    font=font,
+                )
 
     if not metrics_rows:
         raise RuntimeError("No themes produced a valid evaluation split.")
@@ -383,6 +492,7 @@ def evaluate_dataset(
         "metrics": metrics_path,
         "forecasts": forecasts_path,
         "plots_dir": plots_dir,
+        "window_plots_dir": window_plots_dir,
     }
 
 
@@ -397,6 +507,8 @@ def main() -> None:
         top_n=args.top_n,
         selected_themes=args.themes,
         forecast_stretch=args.forecast_stretch,
+        test_start_quarter=args.test_start_quarter,
+        test_end_quarter=args.test_end_quarter,
         skip_plots=args.skip_plots,
     )
 

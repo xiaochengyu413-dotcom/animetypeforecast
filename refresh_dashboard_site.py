@@ -16,6 +16,7 @@ from sensitivity_analysis import run_sensitivity_analysis
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 DEFAULT_EVAL_DIR = DEFAULT_OUTPUT_DIR / "evaluation"
+DEFAULT_RECENT_EVAL_DIR = DEFAULT_OUTPUT_DIR / "evaluation_2024_2025"
 DEFAULT_COMPARISON_DIR = DEFAULT_OUTPUT_DIR / "target_comparison"
 DEFAULT_SENSITIVITY_DIR = DEFAULT_OUTPUT_DIR / "sensitivity_analysis"
 
@@ -29,6 +30,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--archive-data-dir", type=Path, default=DEFAULT_DATA_DIR)
     parser.add_argument("--dataset-output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
     parser.add_argument("--evaluation-output-dir", type=Path, default=DEFAULT_EVAL_DIR)
+    parser.add_argument("--recent-evaluation-output-dir", type=Path, default=DEFAULT_RECENT_EVAL_DIR)
     parser.add_argument("--future-output-dir", type=Path, default=DEFAULT_FUTURE_DIR)
     parser.add_argument("--comparison-output-dir", type=Path, default=DEFAULT_COMPARISON_DIR)
     parser.add_argument("--sensitivity-output-dir", type=Path, default=DEFAULT_SENSITIVITY_DIR)
@@ -79,6 +81,22 @@ def main() -> None:
         top_n=0,
         selected_themes=None,
         forecast_stretch=args.forecast_stretch,
+        test_start_quarter=None,
+        test_end_quarter=None,
+        skip_plots=False,
+    )
+
+    evaluate_dataset(
+        input_path=build_result["quarterly_ready"],
+        output_dir=args.recent_evaluation_output_dir,
+        target="popularity_index",
+        test_periods=8,
+        min_train_points=args.min_train_points,
+        top_n=0,
+        selected_themes=None,
+        forecast_stretch=1.0,
+        test_start_quarter="2024Q1",
+        test_end_quarter="2025Q4",
         skip_plots=False,
     )
 

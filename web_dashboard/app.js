@@ -521,6 +521,11 @@
     setImage("plot-rating", theme.assets.futureRatingPlot, `${theme.theme} 未来评分预测`);
     setImage("plot-comparison", theme.assets.comparisonTrendPlot, `${theme.theme} 热度与评分走势对照`);
     setImage("plot-evaluation", theme.assets.evaluationPlot, `${theme.theme} 历史回溯验证`);
+    setImage(
+      "plot-evaluation-window",
+      theme.assets.evaluationWindowPlot,
+      `${theme.theme} 2024Q1 到 2025Q4 回溯测试对比`
+    );
 
     document.getElementById("scenario-rank-body").innerHTML = theme.scenarioRanks
       .map(

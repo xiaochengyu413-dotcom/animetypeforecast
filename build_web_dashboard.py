@@ -16,6 +16,9 @@ POPULARITY_SUMMARY = SCRIPT_DIR / "generated" / "future_forecast" / "future_summ
 RATING_SUMMARY = SCRIPT_DIR / "generated" / "future_forecast" / "future_summary_avg_weighted_rating.csv"
 COMPARISON_SUMMARY = SCRIPT_DIR / "generated" / "target_comparison" / "forecast_target_comparison.csv"
 EVALUATION_METRICS = SCRIPT_DIR / "generated" / "evaluation" / "metrics_popularity_index.csv"
+EVALUATION_WINDOW_METRICS = (
+    SCRIPT_DIR / "generated" / "evaluation_2024_2025" / "metrics_popularity_index.csv"
+)
 THEME_READINESS = SCRIPT_DIR / "generated" / "theme_readiness.csv"
 SCENARIO_METRICS = SCRIPT_DIR / "generated" / "sensitivity_analysis" / "scenario_metrics.csv"
 SCENARIO_FORECASTS = (
@@ -600,6 +603,7 @@ def build_dashboard_data(site_dir: Path) -> dict[str, object]:
             RATING_SUMMARY,
             COMPARISON_SUMMARY,
             EVALUATION_METRICS,
+            EVALUATION_WINDOW_METRICS,
             THEME_READINESS,
             SCENARIO_METRICS,
             SCENARIO_FORECASTS,
@@ -678,6 +682,13 @@ def build_dashboard_data(site_dir: Path) -> dict[str, object]:
         future_rating_plot = SCRIPT_DIR / "generated" / "future_forecast" / "plots" / f"{theme}_avg_weighted_rating_future.png"
         comparison_plot = SCRIPT_DIR / "generated" / "target_comparison" / "trend_plots" / f"{theme}_rating_vs_popularity_future.png"
         evaluation_plot = SCRIPT_DIR / "generated" / "evaluation" / "plots" / f"{theme}_popularity_index.png"
+        evaluation_window_plot = (
+            SCRIPT_DIR
+            / "generated"
+            / "evaluation_2024_2025"
+            / "window_plots"
+            / f"{theme}_popularity_index_window.png"
+        )
         theme_cards.append(
             {
                 "theme": theme,
@@ -705,6 +716,7 @@ def build_dashboard_data(site_dir: Path) -> dict[str, object]:
                     "futureRatingPlot": stage_asset(site_dir, future_rating_plot, "future", future_rating_plot.name),
                     "comparisonTrendPlot": stage_asset(site_dir, comparison_plot, "comparison", comparison_plot.name),
                     "evaluationPlot": stage_asset(site_dir, evaluation_plot, "evaluation", evaluation_plot.name),
+                    "evaluationWindowPlot": stage_asset(site_dir, evaluation_window_plot, "evaluation_window", evaluation_window_plot.name),
                 },
             }
         )
