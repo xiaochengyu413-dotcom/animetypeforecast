@@ -17,7 +17,7 @@ RATING_SUMMARY = SCRIPT_DIR / "generated" / "future_forecast" / "future_summary_
 COMPARISON_SUMMARY = SCRIPT_DIR / "generated" / "target_comparison" / "forecast_target_comparison.csv"
 EVALUATION_METRICS = SCRIPT_DIR / "generated" / "evaluation" / "metrics_popularity_index.csv"
 EVALUATION_WINDOW_METRICS = (
-    SCRIPT_DIR / "generated" / "evaluation_2024_2025" / "metrics_popularity_index.csv"
+    SCRIPT_DIR / "generated" / "evaluation_2024_2025" / "metrics_avg_weighted_rating.csv"
 )
 THEME_READINESS = SCRIPT_DIR / "generated" / "theme_readiness.csv"
 SCENARIO_METRICS = SCRIPT_DIR / "generated" / "sensitivity_analysis" / "scenario_metrics.csv"
@@ -687,7 +687,7 @@ def build_dashboard_data(site_dir: Path) -> dict[str, object]:
             / "generated"
             / "evaluation_2024_2025"
             / "window_plots"
-            / f"{theme}_popularity_index_window.png"
+            / f"{theme}_avg_weighted_rating_window.png"
         )
         theme_cards.append(
             {

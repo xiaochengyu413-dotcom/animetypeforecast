@@ -89,7 +89,7 @@ def main() -> None:
     evaluate_dataset(
         input_path=build_result["quarterly_ready"],
         output_dir=args.recent_evaluation_output_dir,
-        target="popularity_index",
+        target="avg_weighted_rating",
         test_periods=8,
         min_train_points=args.min_train_points,
         top_n=0,
