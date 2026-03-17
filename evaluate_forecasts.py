@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import math
 import re
+from functools import lru_cache
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -72,14 +73,22 @@ def safe_name(value: str) -> str:
     return cleaned or "theme"
 
 
+@lru_cache(maxsize=1)
 def resolve_font() -> font_manager.FontProperties | None:
     candidate_paths = [
         Path(r"C:\Windows\Fonts\simhei.ttf"),
         Path(r"C:\Windows\Fonts\msyh.ttc"),
         Path(r"C:\Windows\Fonts\simsun.ttc"),
+        Path("/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"),
+        Path("/usr/share/fonts/opentype/noto/NotoSerifCJK-Regular.ttc"),
+        Path("/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc"),
+        Path("/usr/share/fonts/truetype/arphic/ukai.ttc"),
+        Path("/System/Library/Fonts/PingFang.ttc"),
+        Path("/System/Library/Fonts/Hiragino Sans GB.ttc"),
     ]
     for candidate in candidate_paths:
         if candidate.exists():
+            font_manager.fontManager.addfont(str(candidate))
             return font_manager.FontProperties(fname=str(candidate))
     return None
 
