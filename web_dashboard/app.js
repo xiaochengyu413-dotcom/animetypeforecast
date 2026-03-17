@@ -54,6 +54,15 @@
       .join("/");
   }
 
+  function versionedAssetPath(path) {
+    const version = data?.meta?.generatedAt || window.DASHBOARD_ASSET_VERSION || "";
+    const encoded = encodePath(path);
+    if (!version) {
+      return encoded;
+    }
+    return `${encoded}?v=${encodeURIComponent(version)}`;
+  }
+
   function createCard(label, value, detail) {
     return `
       <article class="metric-card">
@@ -108,7 +117,7 @@
   function setImage(id, relativePath, alt) {
     const image = document.getElementById(id);
     image.alt = alt;
-    image.src = encodePath(relativePath);
+    image.src = versionedAssetPath(relativePath);
     image.onerror = function onError() {
       image.alt = `${alt}（图片不存在）`;
       image.removeAttribute("src");

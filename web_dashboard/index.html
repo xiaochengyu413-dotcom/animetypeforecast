@@ -9,8 +9,16 @@
     content="追踪 Bangumi 15 类动画题材的历史表现与未来走势，集中查看热度、评分、排名分歧与稳健性分析。"
   >
   <link rel="stylesheet" href="./styles.css">
-  <script defer src="./data.js"></script>
-  <script defer src="./app.js"></script>
+  <script>
+    // Force-refresh dashboard scripts so GitHub Pages/browser caches do not keep old plots.
+    window.DASHBOARD_ASSET_VERSION = Date.now().toString();
+    for (const source of ["./data.js", "./app.js"]) {
+      const script = document.createElement("script");
+      script.defer = true;
+      script.src = `${source}?v=${window.DASHBOARD_ASSET_VERSION}`;
+      document.head.appendChild(script);
+    }
+  </script>
 </head>
 <body>
   <div class="backdrop backdrop-a"></div>
