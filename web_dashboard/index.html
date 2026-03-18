@@ -12,12 +12,16 @@
   <script>
     // Force-refresh dashboard scripts so GitHub Pages/browser caches do not keep old plots.
     window.DASHBOARD_ASSET_VERSION = Date.now().toString();
-    for (const source of ["./data.js", "./app.js"]) {
-      const script = document.createElement("script");
-      script.defer = true;
-      script.src = `${source}?v=${window.DASHBOARD_ASSET_VERSION}`;
-      document.head.appendChild(script);
-    }
+    const dataScript = document.createElement("script");
+    dataScript.src = `./data.js?v=${window.DASHBOARD_ASSET_VERSION}`;
+    dataScript.async = false;
+    dataScript.onload = function onDataReady() {
+      const appScript = document.createElement("script");
+      appScript.src = `./app.js?v=${window.DASHBOARD_ASSET_VERSION}`;
+      appScript.async = false;
+      document.head.appendChild(appScript);
+    };
+    document.head.appendChild(dataScript);
   </script>
 </head>
 <body>
