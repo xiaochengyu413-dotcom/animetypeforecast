@@ -682,13 +682,23 @@ def build_dashboard_data(site_dir: Path) -> dict[str, object]:
         future_rating_plot = SCRIPT_DIR / "generated" / "future_forecast" / "plots" / f"{theme}_avg_weighted_rating_future.png"
         comparison_plot = SCRIPT_DIR / "generated" / "target_comparison" / "trend_plots" / f"{theme}_rating_vs_popularity_future.png"
         evaluation_plot = SCRIPT_DIR / "generated" / "evaluation" / "plots" / f"{theme}_popularity_index.png"
-        evaluation_window_plot = (
+        model_comparison_plot = (
             SCRIPT_DIR
             / "generated"
-            / "evaluation_2024_2025"
-            / "window_plots"
-            / f"{theme}_avg_weighted_rating_window.png"
+            / "model_backtest_2024_2025"
+            / "plots"
+            / "avg_weighted_rating"
+            / f"{theme}_avg_weighted_rating_comparison.png"
         )
+        evaluation_window_plot = model_comparison_plot
+        if not evaluation_window_plot.exists():
+            evaluation_window_plot = (
+                SCRIPT_DIR
+                / "generated"
+                / "evaluation_2024_2025"
+                / "window_plots"
+                / f"{theme}_avg_weighted_rating_window.png"
+            )
         theme_cards.append(
             {
                 "theme": theme,

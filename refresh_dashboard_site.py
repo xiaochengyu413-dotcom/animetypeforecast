@@ -5,6 +5,11 @@ from pathlib import Path
 
 from build_theme_dataset import DEFAULT_OUTPUT_DIR, build_dataset
 from build_web_dashboard import DEFAULT_SITE_DIR, build_dashboard_data, write_data_js
+from compare_backtest_models import (
+    LSTMTrainingConfig,
+    compare_models_for_target,
+    load_ready_theme_dataset,
+)
 from compare_forecast_targets import compare_targets
 from download_bangumi_archive import DEFAULT_DATA_DIR, sync_latest_archive
 from evaluate_forecasts import evaluate_dataset
@@ -17,6 +22,7 @@ from sensitivity_analysis import run_sensitivity_analysis
 SCRIPT_DIR = Path(__file__).resolve().parent
 DEFAULT_EVAL_DIR = DEFAULT_OUTPUT_DIR / "evaluation"
 DEFAULT_RECENT_EVAL_DIR = DEFAULT_OUTPUT_DIR / "evaluation_2024_2025"
+DEFAULT_MODEL_BACKTEST_DIR = DEFAULT_OUTPUT_DIR / "model_backtest_2024_2025"
 DEFAULT_COMPARISON_DIR = DEFAULT_OUTPUT_DIR / "target_comparison"
 DEFAULT_SENSITIVITY_DIR = DEFAULT_OUTPUT_DIR / "sensitivity_analysis"
 
@@ -31,6 +37,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--dataset-output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
     parser.add_argument("--evaluation-output-dir", type=Path, default=DEFAULT_EVAL_DIR)
     parser.add_argument("--recent-evaluation-output-dir", type=Path, default=DEFAULT_RECENT_EVAL_DIR)
+    parser.add_argument("--model-backtest-output-dir", type=Path, default=DEFAULT_MODEL_BACKTEST_DIR)
     parser.add_argument("--future-output-dir", type=Path, default=DEFAULT_FUTURE_DIR)
     parser.add_argument("--comparison-output-dir", type=Path, default=DEFAULT_COMPARISON_DIR)
     parser.add_argument("--sensitivity-output-dir", type=Path, default=DEFAULT_SENSITIVITY_DIR)
@@ -97,6 +104,29 @@ def main() -> None:
         forecast_stretch=1.0,
         test_start_quarter="2024Q1",
         test_end_quarter="2025Q4",
+        skip_plots=False,
+    )
+
+    model_backtest_dataset = load_ready_theme_dataset(
+        input_path=build_result["quarterly_ready"],
+        readiness_path=build_result["readiness"],
+    )
+    compare_models_for_target(
+        dataset=model_backtest_dataset,
+        output_dir=args.model_backtest_output_dir,
+        prophet_evaluation_dir=args.recent_evaluation_output_dir,
+        target="avg_weighted_rating",
+        test_start_quarter="2024Q1",
+        test_end_quarter="2025Q4",
+        min_train_points=max(args.min_train_points, 16),
+        lstm_config=LSTMTrainingConfig(
+            lookback=8,
+            hidden_size=12,
+            learning_rate=0.02,
+            epochs=80,
+            seed=42,
+            backend="auto",
+        ),
         skip_plots=False,
     )
 

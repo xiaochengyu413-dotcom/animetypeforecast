@@ -533,7 +533,7 @@
     setImage(
       "plot-evaluation-window",
       theme.assets.evaluationWindowPlot,
-      `${theme.theme} 2024Q1 到 2025Q4 评分回溯测试对比`
+      `${theme.theme} 2024Q1 到 2025Q4 评分三模型回溯验证对比`
     );
 
     document.getElementById("scenario-rank-body").innerHTML = theme.scenarioRanks
