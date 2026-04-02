@@ -4,8 +4,10 @@ __pycache__/
 *.pyd
 
 .venv/
+.venv-torch/
 venv/
 env/
+.tmp/
 
 data/bangumi_archive/
 generated/
