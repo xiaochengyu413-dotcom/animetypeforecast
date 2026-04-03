@@ -622,19 +622,6 @@
       .join("");
   }
 
-  function renderRoadmap() {
-    document.getElementById("roadmap-grid").innerHTML = data.roadmap
-      .map(
-        (item) => `
-          <article class="roadmap-card">
-            <h3>${item.title}</h3>
-            <p class="sub">${item.detail}</p>
-          </article>
-        `
-      )
-      .join("");
-  }
-
   function setSelectedTheme(theme, options = {}) {
     state.selectedTheme = theme;
     renderThemeHome();
@@ -664,7 +651,6 @@
     renderLeaderboards();
     renderValidation();
     renderSensitivity();
-    renderRoadmap();
     renderFooter();
     renderComparisonNarrative();
     renderScatter();
