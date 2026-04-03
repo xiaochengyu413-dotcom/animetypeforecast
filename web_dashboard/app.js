@@ -562,6 +562,7 @@
     document.getElementById("detail-reading-note").innerHTML = `
       <p>如果你想判断“这个主题究竟是更热，还是只是评分更高”，先看热度排名与评分排名的差值，再看第三张对照图。</p>
       <p>${prophetVsNaive}</p>
+      <p>需要注意的是，2025Q4 虽然是当前归档快照下最新的完整播出季度，但在 2026-03-10 抓取时，投票等互动信号仍在继续累积，因此该季度的 actual 尤其是 popularity 指标可能会因成熟度滞后而偏低。</p>
       <p>在当前数据里，${theme.theme} 的建模覆盖率为 ${formatPercent(readiness.usableCoverageRatio)}，可用季度数为 ${readiness.usableQuarters ?? "—"}。</p>
     `;
   }
