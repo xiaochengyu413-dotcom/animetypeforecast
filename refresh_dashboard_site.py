@@ -96,6 +96,20 @@ def main() -> None:
     evaluate_dataset(
         input_path=build_result["quarterly_ready"],
         output_dir=args.recent_evaluation_output_dir,
+        target="popularity_index",
+        test_periods=8,
+        min_train_points=args.min_train_points,
+        top_n=0,
+        selected_themes=None,
+        forecast_stretch=args.forecast_stretch,
+        test_start_quarter="2024Q1",
+        test_end_quarter="2025Q4",
+        skip_plots=False,
+    )
+
+    evaluate_dataset(
+        input_path=build_result["quarterly_ready"],
+        output_dir=args.recent_evaluation_output_dir,
         target="avg_weighted_rating",
         test_periods=8,
         min_train_points=args.min_train_points,
@@ -111,6 +125,25 @@ def main() -> None:
         input_path=build_result["quarterly_ready"],
         readiness_path=build_result["readiness"],
     )
+    backtest_lstm_config = LSTMTrainingConfig(
+        lookback=8,
+        hidden_size=12,
+        learning_rate=0.02,
+        epochs=80,
+        seed=42,
+        backend="auto",
+    )
+    compare_models_for_target(
+        dataset=model_backtest_dataset,
+        output_dir=args.model_backtest_output_dir,
+        prophet_evaluation_dir=args.recent_evaluation_output_dir,
+        target="popularity_index",
+        test_start_quarter="2024Q1",
+        test_end_quarter="2025Q4",
+        min_train_points=max(args.min_train_points, 16),
+        lstm_config=backtest_lstm_config,
+        skip_plots=False,
+    )
     compare_models_for_target(
         dataset=model_backtest_dataset,
         output_dir=args.model_backtest_output_dir,
@@ -119,14 +152,7 @@ def main() -> None:
         test_start_quarter="2024Q1",
         test_end_quarter="2025Q4",
         min_train_points=max(args.min_train_points, 16),
-        lstm_config=LSTMTrainingConfig(
-            lookback=8,
-            hidden_size=12,
-            learning_rate=0.02,
-            epochs=80,
-            seed=42,
-            backend="auto",
-        ),
+        lstm_config=backtest_lstm_config,
         skip_plots=False,
     )
 

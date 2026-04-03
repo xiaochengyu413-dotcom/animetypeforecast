@@ -690,6 +690,14 @@ def build_dashboard_data(site_dir: Path) -> dict[str, object]:
             / "avg_weighted_rating"
             / f"{theme}_avg_weighted_rating_comparison.png"
         )
+        popularity_model_comparison_plot = (
+            SCRIPT_DIR
+            / "generated"
+            / "model_backtest_2024_2025"
+            / "plots"
+            / "popularity_index"
+            / f"{theme}_popularity_index_comparison.png"
+        )
         evaluation_window_plot = model_comparison_plot
         if not evaluation_window_plot.exists():
             evaluation_window_plot = (
@@ -698,6 +706,15 @@ def build_dashboard_data(site_dir: Path) -> dict[str, object]:
                 / "evaluation_2024_2025"
                 / "window_plots"
                 / f"{theme}_avg_weighted_rating_window.png"
+            )
+        popularity_evaluation_window_plot = popularity_model_comparison_plot
+        if not popularity_evaluation_window_plot.exists():
+            popularity_evaluation_window_plot = (
+                SCRIPT_DIR
+                / "generated"
+                / "evaluation_2024_2025"
+                / "window_plots"
+                / f"{theme}_popularity_index_window.png"
             )
         theme_cards.append(
             {
@@ -727,6 +744,12 @@ def build_dashboard_data(site_dir: Path) -> dict[str, object]:
                     "comparisonTrendPlot": stage_asset(site_dir, comparison_plot, "comparison", comparison_plot.name),
                     "evaluationPlot": stage_asset(site_dir, evaluation_plot, "evaluation", evaluation_plot.name),
                     "evaluationWindowPlot": stage_asset(site_dir, evaluation_window_plot, "evaluation_window", evaluation_window_plot.name),
+                    "popularityEvaluationWindowPlot": stage_asset(
+                        site_dir,
+                        popularity_evaluation_window_plot,
+                        "evaluation_window",
+                        popularity_evaluation_window_plot.name,
+                    ),
                 },
             }
         )
